@@ -72,7 +72,7 @@ if (isLoggedIn() && !$isAdminPage) {
 
       <?php if (isLoggedIn()): ?>
         <?php if (in_array(currentUserRole(), ['Super Admin', 'Verification Officer', 'Content Moderator'])): ?>
-          <a class="nav-link admin-link" href="<?= $base ?>admin/index.php">Admin</a>
+          <a class="nav-link admin-link" href="<?= $base ?>ADMIN/index.php">Admin</a>
         <?php endif; ?>
 
         <a class="nav-link" href="<?= $base ?>notifications.php" style="position:relative">

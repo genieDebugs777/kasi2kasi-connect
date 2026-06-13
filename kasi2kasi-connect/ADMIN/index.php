@@ -30,7 +30,7 @@ $recent_users = $conn->query("
     LIMIT 5
 ");
 ?>
-<link rel="stylesheet" href="../ASSETS/CSS/styles.css">
+
 <?php include "../INCLUDES/header.php"; ?>
 
 <div class="admin-control">

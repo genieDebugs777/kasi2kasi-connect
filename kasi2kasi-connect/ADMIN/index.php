@@ -1,7 +1,6 @@
 <?php
 require_once "../INCLUDES/db.php";
 require_once "../INCLUDES/admin_auth.php";
-<link rel="stylesheet" href="../ASSETS/CSS/styles.css">
 
 requireRole(["Super Admin", "Verification Officer", "Content Moderator"]);
 
@@ -31,7 +30,7 @@ $recent_users = $conn->query("
     LIMIT 5
 ");
 ?>
-
+<link rel="stylesheet" href="../ASSETS/CSS/styles.css">
 <?php include "../INCLUDES/header.php"; ?>
 
 <div class="admin-control">

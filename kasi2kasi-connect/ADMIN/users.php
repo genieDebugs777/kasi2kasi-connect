@@ -1,6 +1,6 @@
 <?php
-require_once "../includes/db.php";
-require_once "../includes/admin_auth.php";
+require_once "../INCLUDES/db.php";
+require_once "../INCLUDES/admin_auth.php";
 
 requireRole(["Super Admin"]);
 
@@ -63,7 +63,7 @@ $suspended_users = $conn->query("SELECT COUNT(*) AS c FROM user WHERE status='su
 $verified_users = $conn->query("SELECT COUNT(*) AS c FROM user WHERE is_verified=1")->fetch_assoc()["c"];
 ?>
 
-<?php include "../includes/header.php"; ?>
+<?php include "../INCLUDES/header.php"; ?>
 
 <div class="admin-control">
 
@@ -277,4 +277,4 @@ $verified_users = $conn->query("SELECT COUNT(*) AS c FROM user WHERE is_verified
   </main>
 </div>
 
-<?php include "../includes/footer.php"; ?>
+<?php include "../INCLUDES/footer.php"; ?>

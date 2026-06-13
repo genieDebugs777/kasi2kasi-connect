@@ -18,8 +18,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <p>Your township marketplace · Buy and sell with neighbours you trust.</p>
 
     <p style="margin-top:14px">
-      <?php if (!in_array($current_page, ['admin', 'admin/index.php'])): ?>
-        <a href="<?= $base ?>admin/index.php">Admin Panel</a> ·
+      <?php if (!in_array($current_page, ['admin', 'ADMIN/index.php'])): ?>
+        <a href="<?= $base ?>ADMIN/index.php">Admin Panel</a> ·
       <?php endif; ?>
       <a href="<?= $base ?>about.php">About</a> ·
       <a href="<?= $base ?>help.php">Help</a> ·

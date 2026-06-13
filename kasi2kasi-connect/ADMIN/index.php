@@ -1,4 +1,5 @@
 <?php
+echo '<link rel="stylesheet" href="https://kasi2kasi-connect-production.up.railway.app/ASSETS/CSS/styles.css">';
 require_once "../INCLUDES/db.php";
 require_once "../INCLUDES/admin_auth.php";
 

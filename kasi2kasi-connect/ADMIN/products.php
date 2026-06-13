@@ -1,6 +1,6 @@
 <?php
-require_once "../includes/db.php";
-require_once "../includes/admin_auth.php";
+require_once "../INCLUDES/db.php";
+require_once "../INCLUDES/admin_auth.php";
 
 requireRole(["Super Admin", "Content Moderator"]);
 
@@ -77,7 +77,7 @@ $removed_products = $conn->query("SELECT COUNT(*) AS c FROM product WHERE status
 $sold_products = $conn->query("SELECT COUNT(*) AS c FROM product WHERE status='sold'")->fetch_assoc()["c"];
 ?>
 
-<?php include "../includes/header.php"; ?>
+<?php include "../INCLUDES/header.php"; ?>
 
 <div class="admin-control">
 
@@ -302,4 +302,4 @@ $sold_products = $conn->query("SELECT COUNT(*) AS c FROM product WHERE status='s
   </main>
 </div>
 
-<?php include "../includes/footer.php"; ?>
+<?php include "../INCLUDES/footer.php"; ?>

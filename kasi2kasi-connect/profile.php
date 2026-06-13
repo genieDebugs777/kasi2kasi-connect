@@ -127,7 +127,7 @@ $pending_orders_stmt->execute();
 $pending_orders_count = $pending_orders_stmt->get_result()->fetch_assoc()["c"];
 ?>
 
-<?php include "includes/header.php"; ?>
+<?php include "INCLUDES/header.php"; ?>
 
 <div class="container">
 

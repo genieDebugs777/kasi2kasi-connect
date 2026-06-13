@@ -47,7 +47,7 @@ $reviews = $review_stmt->get_result();
 $stock_error = isset($_GET["stock_error"]) ? true : false;
 ?>
 
-<?php include "includes/header.php"; ?>
+<?php include "INCLUDES/header.php"; ?>
 
 <div class="container">
 

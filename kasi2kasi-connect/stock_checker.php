@@ -8,7 +8,7 @@
  * Cron job: 0 * * * * php /path/to/stock_checker.php
  */
 
-require_once "includes/db.php";
+require_once "INCLUDES/db.php";
 
 // Get all products with low stock (10 or less) and not yet notified today
 $low_stock_stmt = $conn->prepare("

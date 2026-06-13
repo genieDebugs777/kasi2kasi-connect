@@ -27,9 +27,9 @@ if (isLoggedIn() && !$isAdminPage) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="<?= $base ?>assets/css/styles.css">
-  <script src="<?= $base ?>assets/javascript/app.js" defer></script>
-  <script src="<?= $base ?>assets/javascript/animations.js" defer></script>
+  <link rel="stylesheet" href="<?= $base ?>ASSETS/CSS/styles.css">
+  <script src="<?= $base ?>ASSETS/JavaScript/app.js" defer></script>
+  <script src="<?= $base ?>ASSETS/JavaScript/animations.js" defer></script>
 </head>
 
 <body class="<?= $bodyClass ?>">

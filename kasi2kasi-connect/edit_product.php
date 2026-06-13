@@ -85,7 +85,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["update_product"])) {
 }
 ?>
 
-<?php include "includes/header.php"; ?>
+<?php include "INCLUDES/header.php"; ?>
 
 <div class="container">
 

@@ -1,6 +1,6 @@
 <?php
-require_once "includes/db.php";
-require_once "includes/auth.php";
+require_once "INCLUDES/db.php";
+require_once "INCLUDES/auth.php";
 requireLogin();
 
 $user_id = $_SESSION["user_id"];
@@ -533,4 +533,4 @@ document.getElementById('selectAll')?.addEventListener('change', function(e) {
 });
 </script>
 
-<?php include "includes/footer.php"; ?>
+<?php include "INCLUDES/footer.php"; ?>

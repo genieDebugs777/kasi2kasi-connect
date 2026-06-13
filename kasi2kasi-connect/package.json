@@ -1,0 +1,8 @@
+{
+  "name": "kasi2kasi-connect",
+  "version": "1.0.0",
+  "description": "C2C E-commerce Platform",
+  "scripts": {
+    "start": "php -S 0.0.0.0:$PORT"
+  }
+}

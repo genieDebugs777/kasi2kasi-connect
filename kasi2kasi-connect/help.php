@@ -1,4 +1,4 @@
-<?php include "includes/header.php"; ?>
+<?php include "INCLUDES/header.php"; ?>
 
 <div class="container">
 
@@ -94,4 +94,4 @@
 
 </div>
 
-<?php include "includes/footer.php"; ?>
+<?php include "INCLUDES/footer.php"; ?>

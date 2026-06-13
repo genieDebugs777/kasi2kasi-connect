@@ -1,243 +1,147 @@
 <?php
-require_once "../includes/db.php";
-require_once "../includes/admin_auth.php";
+require_once "includes/db.php";
+include "includes/header.php";
 
-requireRole(["Super Admin", "Verification Officer", "Content Moderator"]);
-
-$total_users = $conn->query("SELECT COUNT(*) AS c FROM user")->fetch_assoc()["c"];
-$total_products = $conn->query("SELECT COUNT(*) AS c FROM product")->fetch_assoc()["c"];
-$total_orders = $conn->query("SELECT COUNT(*) AS c FROM orders")->fetch_assoc()["c"];
-
-$pending_verifications = $conn->query("
-    SELECT COUNT(*) AS c 
-    FROM verification_request 
-    WHERE status = 'pending'
-")->fetch_assoc()["c"];
-
-$recent_products = $conn->query("
-    SELECT product.title, product.price, product.status, user.name AS seller_name
+$products = $conn->query("
+    SELECT product.*, user.name AS seller_name, user.is_verified, user.is_trusted
     FROM product
     JOIN user ON product.seller_id = user.user_id
+    WHERE product.status = 'active'
     ORDER BY product.created_at DESC
-    LIMIT 5
+    LIMIT 8
 ");
 
-$recent_users = $conn->query("
-    SELECT user.name, user.email, user.status, role.role_name
-    FROM user
-    JOIN role ON user.role_id = role.role_id
-    ORDER BY user.created_at DESC
-    LIMIT 5
-");
+$categories = $conn->query("SELECT * FROM category ORDER BY name ASC");
+
+$total_products = $conn->query("SELECT COUNT(*) AS c FROM product WHERE status='active'")->fetch_assoc()["c"];
+$total_users = $conn->query("SELECT COUNT(*) AS c FROM user")->fetch_assoc()["c"];
+$total_verified = $conn->query("SELECT COUNT(*) AS c FROM user WHERE is_verified=1")->fetch_assoc()["c"];
 ?>
 
-<?php include "../includes/header.php"; ?>
+<div class="container">
+  <section class="hero">
+    <div class="hero-content">
+      <div class="kicker">🇿🇦 Township-first C2C marketplace</div>
 
-<div class="admin-control">
+      <h1>Buy local. Sell fast. Build your kasi economy.</h1>
 
-  <aside class="admin-sidebar">
-    <div class="admin-side-brand">
-      <span class="brand-mark"><span>K2K</span></span>
-      <div>
-        <strong>Kasi2Kasi</strong>
-        <small>Admin Console</small>
+      <p>
+        Kasi2Kasi Connect helps neighbours trade safely — from pre-loved sneakers and phones
+        to handmade crafts, textbooks and home goods. Find trusted sellers close to you.
+      </p>
+
+      <div class="hero-actions">
+        <a href="products.php" class="btn btn-primary">Start browsing</a>
+        <a href="sell.php" class="btn btn-outline">List an item</a>
       </div>
     </div>
+  </section>
 
-    <nav class="admin-side-nav">
-      <a class="active" href="index.php">📊 Dashboard</a>
-
-      <?php if (currentUserRole() === "Super Admin"): ?>
-        <a href="users.php">👥 Users</a>
-        <a href="roles.php">🔐 Roles</a>
-      <?php endif; ?>
-
-      <?php if (in_array(currentUserRole(), ["Super Admin", "Verification Officer"])): ?>
-        <a href="verify.php">✅ Verifications</a>
-      <?php endif; ?>
-
-      <?php if (in_array(currentUserRole(), ["Super Admin", "Content Moderator"])): ?>
-        <a href="products.php">🛍 Products</a>
-      <?php endif; ?>
-
-      <a href="../index.php">↩ Back to Site</a>
-    </nav>
-  </aside>
-
-  <main class="admin-main-panel">
-
-    <section class="admin-hero-pro">
-      <div>
-        <span class="admin-chip">CONTROL ROOM</span>
-        <h1>Marketplace Command Centre</h1>
-        <p>
-          Welcome, <?= htmlspecialchars(currentUserName()) ?>.
-          You are operating as <strong><?= htmlspecialchars(currentUserRole()) ?></strong>.
+  <section class="section">
+    <div class="grid grid-2">
+      <div class="card" style="padding:24px;background:linear-gradient(135deg,#fff,#fff3df)">
+        <span class="badge badge-verified">✓ Verified Sellers</span>
+        <h2 style="margin:12px 0 8px;letter-spacing:-.04em">Trust built for local trade</h2>
+        <p class="text-muted" style="margin:0;line-height:1.6">
+          Seller verification and community reviews help buyers avoid scams and trade with confidence.
         </p>
       </div>
 
-      <div class="admin-orb">
-        <span><?= strtoupper(substr(currentUserRole(), 0, 2)) ?></span>
+      <div class="card" style="padding:24px;background:linear-gradient(135deg,#fff,#f0fff5)">
+        <span class="badge badge-trusted">★ Trusted Seller</span>
+        <h2 style="margin:12px 0 8px;letter-spacing:-.04em">From side-hustle to scale</h2>
+        <p class="text-muted" style="margin:0;line-height:1.6">
+          Kasi2Kasi gives informal sellers a digital storefront without needing a registered business.
+        </p>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="admin-metrics">
-      <div class="admin-metric-card">
-        <span class="metric-icon">👥</span>
-        <small>Total Users</small>
-        <strong><?= $total_users ?></strong>
-        <p>Registered accounts</p>
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <h2>Browse by category</h2>
+        <p>Find what your community is selling today.</p>
+      </div>
+    </div>
+
+    <div class="pills">
+      <a class="pill active" href="products.php">All</a>
+
+      <?php while ($cat = $categories->fetch_assoc()): ?>
+        <a class="pill" href="products.php?category=<?= urlencode($cat['slug']) ?>">
+          <?= htmlspecialchars($cat['name']) ?>
+        </a>
+      <?php endwhile; ?>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <h2>Fresh kasi listings</h2>
+        <p>New products from nearby sellers.</p>
       </div>
 
-      <div class="admin-metric-card">
-        <span class="metric-icon">🛍</span>
-        <small>Listings</small>
-        <strong><?= $total_products ?></strong>
-        <p>Marketplace products</p>
-      </div>
+      <a href="products.php" class="btn btn-ghost btn-sm">See all →</a>
+    </div>
 
-      <div class="admin-metric-card">
-        <span class="metric-icon">📦</span>
-        <small>Orders</small>
-        <strong><?= $total_orders ?></strong>
-        <p>Transactions recorded</p>
-      </div>
+    <div class="grid grid-products">
+      <?php if ($products && $products->num_rows > 0): ?>
+        <?php while ($p = $products->fetch_assoc()): ?>
+          <a href="product.php?id=<?= $p['product_id'] ?>" class="card product-card">
+            <div class="img" style="background-image:url('<?= htmlspecialchars($p['image_url']) ?>')"></div>
 
-      <div class="admin-metric-card warning">
-        <span class="metric-icon">⚠️</span>
-        <small>Pending Verifications</small>
-        <strong><?= $pending_verifications ?></strong>
-        <p>Awaiting review</p>
-      </div>
-    </section>
+            <div class="body">
+              <h3 class="title"><?= htmlspecialchars($p['title']) ?></h3>
 
-    <section class="admin-dashboard-grid">
+              <div class="price">
+                R <?= number_format($p['price'], 2) ?>
+              </div>
 
-      <div class="admin-glass-panel">
-        <div class="admin-panel-head">
-          <div>
-            <h2>Admin Actions</h2>
-            <p>Role-aware operational tools.</p>
-          </div>
+              <div class="meta">
+                <span><?= htmlspecialchars($p['seller_name']) ?></span>
+
+                <?php if ($p['is_verified']): ?>
+                  <span class="badge badge-verified">✓ Verified</span>
+                <?php elseif ($p['is_trusted']): ?>
+                  <span class="badge badge-trusted">★ Trusted</span>
+                <?php endif; ?>
+              </div>
+            </div>
+          </a>
+        <?php endwhile; ?>
+      <?php else: ?>
+        <div class="card" style="padding:30px;text-align:center">
+          <h3>No listings yet</h3>
+          <p class="text-muted">Be the first seller to list something in your kasi.</p>
+          <a href="sell.php" class="btn btn-primary">Create listing</a>
         </div>
+      <?php endif; ?>
+    </div>
+  </section>
 
-        <div class="admin-action-grid">
-
-          <?php if (currentUserRole() === "Super Admin"): ?>
-            <a href="users.php" class="admin-action-card">
-              <span>👥</span>
-              <strong>Manage Users</strong>
-              <small>Create, suspend, activate, and review users.</small>
-            </a>
-
-            <a href="roles.php" class="admin-action-card">
-              <span>🔐</span>
-              <strong>RBAC Roles</strong>
-              <small>View role permissions and assignments.</small>
-            </a>
-          <?php endif; ?>
-
-          <?php if (in_array(currentUserRole(), ["Super Admin", "Verification Officer"])): ?>
-            <a href="verify.php" class="admin-action-card">
-              <span>✅</span>
-              <strong>Seller Verification</strong>
-              <small>Approve or reject identity requests.</small>
-            </a>
-          <?php endif; ?>
-
-          <?php if (in_array(currentUserRole(), ["Super Admin", "Content Moderator"])): ?>
-            <a href="products.php" class="admin-action-card">
-              <span>🛍</span>
-              <strong>Moderate Listings</strong>
-              <small>Remove suspicious or invalid products.</small>
-            </a>
-          <?php endif; ?>
-
-        </div>
+  <section class="section">
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+      <div class="stat">
+        <div class="label">Active Listings</div>
+        <div class="value"><?= $total_products ?></div>
+        <div class="delta">Community marketplace</div>
       </div>
 
-      <div class="admin-glass-panel">
-        <div class="admin-panel-head">
-          <div>
-            <h2>Recent Users</h2>
-            <p>Latest platform accounts.</p>
-          </div>
-        </div>
-
-        <div class="admin-table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Role</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <?php while ($u = $recent_users->fetch_assoc()): ?>
-                <tr>
-                  <td>
-                    <strong><?= htmlspecialchars($u["name"]) ?></strong>
-                    <span><?= htmlspecialchars($u["email"]) ?></span>
-                  </td>
-                  <td><?= htmlspecialchars($u["role_name"]) ?></td>
-                  <td>
-                    <span class="admin-status <?= htmlspecialchars($u["status"]) ?>">
-                      <?= htmlspecialchars($u["status"]) ?>
-                    </span>
-                  </td>
-                </tr>
-              <?php endwhile; ?>
-            </tbody>
-          </table>
-        </div>
+      <div class="stat">
+        <div class="label">Registered Users</div>
+        <div class="value"><?= $total_users ?></div>
+        <div class="delta">Buyers and sellers</div>
       </div>
 
-    </section>
-
-    <section class="admin-glass-panel">
-      <div class="admin-panel-head">
-        <div>
-          <h2>Recent Product Listings</h2>
-          <p>Newest items entering the marketplace.</p>
-        </div>
-
-        <?php if (in_array(currentUserRole(), ["Super Admin", "Content Moderator"])): ?>
-          <a href="products.php" class="admin-mini-link">View all →</a>
-        <?php endif; ?>
+      <div class="stat">
+        <div class="label">Verified Sellers</div>
+        <div class="value"><?= $total_verified ?></div>
+        <div class="delta">Trust-first trading</div>
       </div>
-
-      <div class="admin-table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Seller</th>
-              <th>Price</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <?php while ($p = $recent_products->fetch_assoc()): ?>
-              <tr>
-                <td><strong><?= htmlspecialchars($p["title"]) ?></strong></td>
-                <td><?= htmlspecialchars($p["seller_name"]) ?></td>
-                <td>R <?= number_format($p["price"], 2) ?></td>
-                <td>
-                  <span class="admin-status <?= htmlspecialchars($p["status"]) ?>">
-                    <?= htmlspecialchars($p["status"]) ?>
-                  </span>
-                </td>
-              </tr>
-            <?php endwhile; ?>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-  </main>
+    </div>
+  </section>
 </div>
 
-<?php include "../includes/footer.php"; ?>
+<?php include "includes/footer.php"; ?>

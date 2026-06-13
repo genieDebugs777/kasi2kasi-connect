@@ -1,6 +1,6 @@
 <?php
-require_once "../includes/db.php";
-require_once "../includes/admin_auth.php";
+require_once "../INCLUDES/db.php";
+require_once "../INCLUDES/admin_auth.php";
 
 requireRole(["Super Admin", "Verification Officer"]);
 
@@ -107,7 +107,7 @@ $rejected_count = $conn->query("
 ")->fetch_assoc()["c"];
 ?>
 
-<?php include "../includes/header.php"; ?>
+<?php include "../INCLUDES/header.php"; ?>
 
 <div class="admin-control">
 
@@ -410,4 +410,4 @@ $rejected_count = $conn->query("
   </main>
 </div>
 
-<?php include "../includes/footer.php"; ?>
+<?php include "../INCLUDES/footer.php"; ?>

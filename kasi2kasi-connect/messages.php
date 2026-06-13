@@ -132,7 +132,7 @@ if ($active_conversation_id) {
 }
 ?>
 
-<?php include "includes/header.php"; ?>
+<?php include "INCLUDES/header.php"; ?>
 
 <div class="container">
 

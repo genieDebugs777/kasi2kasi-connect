@@ -3,7 +3,7 @@
 $host = 'thomas.proxy.rlwy.net';
 $port = 44619;
 $username = 'root';
-$password = 'vZPkbHqCffGJbIdzGHwxMzRrWwWScrVQx';
+$password = 'fGWlLsxsRZljKakKWUxieZqJZpQcBGCF';
 $database = 'railway';
 
 // Create connection

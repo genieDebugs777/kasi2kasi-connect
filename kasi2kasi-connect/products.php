@@ -1,6 +1,6 @@
 <?php
-require_once "includes/db.php";
-include "includes/header.php";
+require_once "INCLUDES/db.php";
+include "INCLUDES/header.php";
 
 $q = trim($_GET["q"] ?? "");
 $category = trim($_GET["category"] ?? "");
@@ -181,4 +181,4 @@ $categories = $conn->query("SELECT * FROM category ORDER BY name ASC");
   </section>
 </div>
 
-<?php include "includes/footer.php"; ?>
+<?php include "INCLUDES/footer.php"; ?>

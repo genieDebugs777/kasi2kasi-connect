@@ -171,7 +171,7 @@ $delivery_fee = count($cart_items) > 0 ? 50 : 0;
 $total = $subtotal + $delivery_fee;
 ?>
 
-<?php include "includes/header.php"; ?>
+<?php include "INCLUDES/header.php"; ?>
 
 <div class="container">
 

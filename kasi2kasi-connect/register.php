@@ -1,6 +1,6 @@
 <?php
-require_once "includes/db.php";
-require_once "includes/auth.php";
+require_once "INCLUDES/db.php";
+require_once "INCLUDES/auth.php";
 
 $error = "";
 
@@ -43,7 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 ?>
 
-<?php include "includes/header.php"; ?>
+<?php include "INCLUDES/header.php"; ?>
 
 <div class="container">
   <div class="grid grid-2" style="align-items:center;min-height:calc(100vh - 190px);gap:28px">
@@ -114,4 +114,4 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   </div>
 </div>
 
-<?php include "includes/footer.php"; ?>
+<?php include "INCLUDES/footer.php"; ?>

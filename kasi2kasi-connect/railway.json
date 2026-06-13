@@ -3,6 +3,7 @@
     "builder": "NIXPACKS"
   },
   "nixpacks": {
-    "plan": "php"
+    "plan": "php",
+    "phpVersion": "8.2"
   }
 }

@@ -1,6 +1,6 @@
 <?php
-require_once "includes/db.php";
-require_once "includes/auth.php";
+require_once "INCLUDES/db.php";
+require_once "INCLUDES/auth.php";
 
 $product_id = $_GET["id"] ?? null;
 
@@ -248,4 +248,4 @@ $stock_error = isset($_GET["stock_error"]) ? true : false;
   </section>
 </div>
 
-<?php include "includes/footer.php"; ?>
+<?php include "INCLUDES/footer.php"; ?>

@@ -75,7 +75,7 @@ $total_count_stmt->execute();
 $total_count = $total_count_stmt->get_result()->fetch_assoc()["c"];
 ?>
 
-<?php include "includes/header.php"; ?>
+<?php include "INCLUDES/header.php"; ?>
 
 <div class="container">
 

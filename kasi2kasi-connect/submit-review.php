@@ -1,6 +1,6 @@
 <?php
-require_once "includes/db.php";
-require_once "includes/auth.php";
+require_once "INCLUDES/db.php";
+require_once "INCLUDES/auth.php";
 requireLogin();
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {

@@ -1,6 +1,6 @@
 <?php
-require_once "includes/db.php";
-include "includes/header.php";
+require_once "INCLUDES/db.php";
+include "INCLUDES/header.php";
 
 $products = $conn->query("
     SELECT product.*, user.name AS seller_name, user.is_verified, user.is_trusted
@@ -144,4 +144,4 @@ $total_verified = $conn->query("SELECT COUNT(*) AS c FROM user WHERE is_verified
   </section>
 </div>
 
-<?php include "includes/footer.php"; ?>
+<?php include "INCLUDES/footer.php"; ?>

@@ -178,7 +178,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 ?>
 
-<?php include "includes/header.php"; ?>
+<?php include "INCLUDES/header.php"; ?>
 
 <div class="container">
 

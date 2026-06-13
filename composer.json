@@ -1,8 +1,0 @@
-{
-  "name": "kasi2kasi/connect",
-  "description": "C2C E-commerce Platform",
-  "type": "project",
-  "require": {
-    "php": ">=7.4"
-  }
-}

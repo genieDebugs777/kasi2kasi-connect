@@ -1,5 +1,5 @@
 <?php
-require_once "INCLUDESs/db.php";
+require_once "INCLUDES/db.php";
 require_once "INCLUDES/auth.php";
 requireLogin();
 

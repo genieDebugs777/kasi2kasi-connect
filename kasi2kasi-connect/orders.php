@@ -19,7 +19,7 @@ $orders = $orders_stmt->get_result();
 $placed_id = $_GET["placed"] ?? null;
 ?>
 
-<?php include "includes/header.php"; ?>
+<?php include "INCLUDES/header.php"; ?>
 
 <div class="container">
 

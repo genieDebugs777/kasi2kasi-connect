@@ -240,7 +240,7 @@ $out_of_stock_count = $out_of_stock_count_stmt->get_result()->fetch_assoc()["c"]
 $status_filter = $_GET["status"] ?? "";
 ?>
 
-<?php include "includes/header.php"; ?>
+<?php include "INCLUDES/header.php"; ?>
 
 <div class="container">
 

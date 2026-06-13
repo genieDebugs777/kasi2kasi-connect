@@ -1,6 +1,6 @@
 <?php
-require_once "../includes/db.php";
-require_once "../includes/admin_auth.php";
+require_once "../INCLUDES/db.php";
+require_once "../INCLUDES/admin_auth.php";
 
 requireRole(["Super Admin", "Verification Officer", "Content Moderator"]);
 
@@ -31,7 +31,7 @@ $recent_users = $conn->query("
 ");
 ?>
 
-<?php include "../includes/header.php"; ?>
+<?php include "../INCLUDES/header.php"; ?>
 
 <div class="admin-control">
 
@@ -240,4 +240,4 @@ $recent_users = $conn->query("
   </main>
 </div>
 
-<?php include "../includes/footer.php"; ?>
+<?php include "../INCLUDES/footer.php"; ?>

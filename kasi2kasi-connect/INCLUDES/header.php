@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . "/auth.php";
 
-$isAdminPage = strpos($_SERVER['PHP_SELF'], '/admin/') !== false;
+$isAdminPage = strpos($_SERVER['PHP_SELF'], '/ADMIN/') !== false;
 $base = $isAdminPage ? '../' : '';
 $bodyClass = $isAdminPage ? 'admin-page' : 'public-page';
 

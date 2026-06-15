@@ -2344,6 +2344,21 @@ body.admin-page .footer{
     font-weight:900;
 }
 
+body.admin-page .navbar {
+    background: rgba(8, 8, 8, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.admin-page .brand-text,
+body.admin-page .nav-link {
+    color: #f5f5f5;
+}
+
+body.admin-page .nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--taxi);
+}
+
 /* Stock status badges */
 .stock-high {
     color: var(--ubuntu);

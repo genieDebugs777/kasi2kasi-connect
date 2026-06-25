@@ -7,13 +7,18 @@ $bodyClass = $isAdminPage ? 'admin-page' : 'public-page';
 
 // Get unread notification count for the bell icon
 $unread_notif_count = 0;
+$has_unread = false;
 if (isLoggedIn() && !$isAdminPage) {
     require_once __DIR__ . "/db.php";
     $user_id = $_SESSION["user_id"];
     $count_stmt = $conn->prepare("SELECT COUNT(*) AS c FROM notification WHERE user_id = ? AND is_read = 0");
     $count_stmt->bind_param("i", $user_id);
     $count_stmt->execute();
-    $unread_notif_count = $count_stmt->get_result()->fetch_assoc()["c"];
+    $result = $count_stmt->get_result();
+    if ($result) {
+        $unread_notif_count = $result->fetch_assoc()["c"];
+        $has_unread = $unread_notif_count > 0;
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -23,13 +28,10 @@ if (isLoggedIn() && !$isAdminPage) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>Kasi2Kasi Connect</title>
 
-
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='url(%23grad)'/><defs><linearGradient id='grad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%23f7c948'/><stop offset='100%' style='stop-color:%23f97316'/></linearGradient></defs><text x='50' y='72' text-anchor='middle' font-size='48' font-weight='900' font-family='Arial' fill='%23171717'>K2K</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-
-    
 
   <link rel="stylesheet" href="https://kasi2kasi-connect-production.up.railway.app/ASSETS/CSS/styles.css">
   <script src="https://kasi2kasi-connect-production.up.railway.app/ASSETS/JavaScript/app.js" defer></script>
@@ -79,10 +81,11 @@ if (isLoggedIn() && !$isAdminPage) {
           <a class="nav-link admin-link" href="<?= $base ?>ADMIN/index.php">Admin</a>
         <?php endif; ?>
 
-        <a class="nav-link" href="<?= $base ?>notifications.php" style="position:relative">
+        <!-- Notification Bell with Badge -->
+        <a class="nav-link" href="<?= $base ?>notifications.php" style="position:relative; display:inline-flex; align-items:center; gap:4px;">
           🔔 
-          <?php if ($unread_notif_count > 0): ?>
-            <span class="notif-badge"><?= $unread_notif_count ?></span>
+          <?php if ($has_unread): ?>
+            <span class="notif-badge notif-pulse"><?= $unread_notif_count ?></span>
           <?php endif; ?>
         </a>
 
@@ -202,7 +205,34 @@ if (isLoggedIn() && !$isAdminPage) {
   background: rgba(0, 0, 0, 0.05);
 }
 
-/* Mobile Styles - Exactly like your screenshot */
+/* Notification Badge with Pulse Animation */
+.notif-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--danger);
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-weight: bold;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* Pulse animation for notification badge */
+@keyframes notifPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.notif-pulse {
+  animation: notifPulse 0.5s ease 3;
+}
+
+/* Mobile Styles */
 @media (max-width: 900px) {
   .nav-inner {
     flex-wrap: nowrap;
@@ -210,16 +240,14 @@ if (isLoggedIn() && !$isAdminPage) {
     gap: 8px;
   }
   
-  /* Logo stays on left */
   .brand {
     flex-shrink: 0;
   }
   
   .brand-text {
-    display: none; /* Hide "Kasi2Kasi" text on mobile, just show K2K logo */
+    display: none;
   }
   
-  /* Search bar stretches in middle */
   .search-bar {
     flex: 1;
     max-width: none;
@@ -235,12 +263,10 @@ if (isLoggedIn() && !$isAdminPage) {
     font-size: 0.85rem;
   }
   
-  /* Menu icon on right */
   .nav-toggle {
     display: flex;
   }
   
-  /* Hide desktop navigation, show mobile menu */
   .nav-links {
     position: fixed;
     top: 70px;
@@ -286,6 +312,16 @@ if (isLoggedIn() && !$isAdminPage) {
   .admin-link {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: white !important;
+  }
+  
+  /* Mobile notification badge position */
+  .nav-links .nav-link[href*="notifications"] {
+    position: relative !important;
+  }
+  
+  .nav-links .nav-link[href*="notifications"] .notif-badge {
+    position: static;
+    margin-left: 8px;
   }
 }
 
@@ -337,19 +373,6 @@ body.admin-page .nav-links .nav-link {
   color: #e0e0e0;
 }
 
-/* Notification badge */
-.notif-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background: var(--danger);
-  color: white;
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  font-weight: bold;
-}
-
 /* Active toggle animation */
 .nav-toggle.active span:nth-child(1) {
   transform: translateY(7px) rotate(45deg);
@@ -361,3 +384,46 @@ body.admin-page .nav-links .nav-link {
   transform: translateY(-7px) rotate(-45deg);
 }
 </style>
+
+<!-- Real-time notification update script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to update notification count
+    function updateNotificationCount() {
+        // Only run if user is logged in (check if notification link exists)
+        const notifLink = document.querySelector('a[href*="notifications.php"]');
+        if (!notifLink) return;
+        
+        fetch('<?= $base ?>get_notification_count.php')
+            .then(response => response.json())
+            .then(data => {
+                const badge = notifLink.querySelector('.notif-badge');
+                if (data.count > 0) {
+                    if (badge) {
+                        badge.textContent = data.count;
+                        badge.classList.add('notif-pulse');
+                        // Remove pulse class after animation
+                        setTimeout(() => badge.classList.remove('notif-pulse'), 1500);
+                    } else {
+                        // Create new badge
+                        const newBadge = document.createElement('span');
+                        newBadge.className = 'notif-badge notif-pulse';
+                        newBadge.textContent = data.count;
+                        notifLink.style.position = 'relative';
+                        notifLink.appendChild(newBadge);
+                    }
+                } else {
+                    // Remove badge if count is 0
+                    if (badge) badge.remove();
+                }
+            })
+            .catch(error => console.log('Notification update failed:', error));
+    }
+    
+    // Update every 30 seconds
+    setInterval(updateNotificationCount, 30000);
+    
+    // Update immediately on page load
+    updateNotificationCount();
+});
+</script>

@@ -72,6 +72,7 @@ if (isLoggedIn() && !$isAdminPage) {
       
       <?php if (isLoggedIn()): ?>
         <a class="nav-link" href="<?= $base ?>seller_orders.php">My Sales</a>
+        <a class="nav-link" href="<?= $base ?>seller_analytics.php">Analytics</a>
       <?php endif; ?>
       
       <a class="nav-link" href="<?= $base ?>orders.php">Orders</a>

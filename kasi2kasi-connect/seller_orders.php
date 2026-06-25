@@ -67,7 +67,215 @@ while ($order = $new_orders->fetch_assoc()) {
 }
 
 // ============================================================
-// FETCH ALL ORDERS FOR THIS SELLER
+// HANDLE ORDER STATUS UPDATE - FIXED
+// ============================================================
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["update_status"])) {
+    $order_id = intval($_POST["order_id"]);
+    $new_status = $_POST["new_status"];
+    
+    // VALIDATE STATUS
+    $valid_statuses = ['pending', 'paid', 'shipped', 'delivered', 'cancelled'];
+    if (!in_array($new_status, $valid_statuses)) {
+        $_SESSION['error'] = "Invalid status value.";
+        header("Location: seller_orders.php");
+        exit;
+    }
+    
+    // Verify this seller has permission to update this order
+    $check_stmt = $conn->prepare("
+        SELECT orders.status AS current_status, orders.buyer_id, orders.total_amount
+        FROM orders
+        JOIN order_item ON orders.order_id = order_item.order_id
+        JOIN product ON order_item.product_id = product.product_id
+        WHERE orders.order_id = ? AND product.seller_id = ?
+        LIMIT 1
+    ");
+    $check_stmt->bind_param("ii", $order_id, $user_id);
+    $check_stmt->execute();
+    $check_result = $check_stmt->get_result()->fetch_assoc();
+    
+    if (!$check_result) {
+        $_SESSION['error'] = "You don't have permission to update this order.";
+        header("Location: seller_orders.php");
+        exit;
+    }
+    
+    $current_status = $check_result['current_status'];
+    $buyer_id = $check_result['buyer_id'];
+    
+    // CHECK VALID STATUS TRANSITION
+    $allowed_transitions = [
+        'pending' => ['paid', 'cancelled'],
+        'paid' => ['shipped', 'cancelled'],
+        'shipped' => ['delivered', 'cancelled'],
+        'delivered' => [], // Terminal state - no further transitions
+        'cancelled' => []  // Terminal state - no further transitions
+    ];
+    
+    if (!in_array($new_status, $allowed_transitions[$current_status])) {
+        $_SESSION['error'] = "Cannot transition from '$current_status' to '$new_status'.";
+        header("Location: seller_orders.php");
+        exit;
+    }
+    
+    // PROCEED WITH UPDATE
+    $update_stmt = $conn->prepare("UPDATE orders SET status = ? WHERE order_id = ?");
+    $update_stmt->bind_param("si", $new_status, $order_id);
+    $update_stmt->execute();
+    
+    // UPDATE PAYMENT STATUS
+    if ($new_status === 'paid') {
+        $pay_stmt = $conn->prepare("UPDATE payment SET status = 'completed', paid_at = NOW() WHERE order_id = ?");
+        $pay_stmt->bind_param("i", $order_id);
+        $pay_stmt->execute();
+    }
+    
+    // REDUCE STOCK WHEN ORDER IS PAID (if not already reduced)
+    if ($new_status === 'paid') {
+        // Get all products in this order
+        $items_stmt = $conn->prepare("
+            SELECT product_id, quantity
+            FROM order_item
+            WHERE order_id = ?
+        ");
+        $items_stmt->bind_param("i", $order_id);
+        $items_stmt->execute();
+        $items = $items_stmt->get_result();
+        
+        while ($item = $items->fetch_assoc()) {
+            // Reduce stock
+            $stock_stmt = $conn->prepare("
+                UPDATE product 
+                SET quantity = quantity - ? 
+                WHERE product_id = ? AND quantity >= ?
+            ");
+            $stock_stmt->bind_param("iii", $item['quantity'], $item['product_id'], $item['quantity']);
+            $stock_stmt->execute();
+            
+            // Check if product is now out of stock
+            $check_stock = $conn->prepare("SELECT quantity FROM product WHERE product_id = ?");
+            $check_stock->bind_param("i", $item['product_id']);
+            $check_stock->execute();
+            $stock_result = $check_stock->get_result()->fetch_assoc();
+            
+            if ($stock_result['quantity'] <= 0) {
+                $status_stmt = $conn->prepare("UPDATE product SET status = 'sold' WHERE product_id = ?");
+                $status_stmt->bind_param("i", $item['product_id']);
+                $status_stmt->execute();
+            }
+        }
+    }
+    
+    // CREATE NOTIFICATION FOR BUYER
+    $status_messages = [
+        "paid" => "✅ Your order #{$order_id} has been marked as PAID. The seller will prepare your items soon.",
+        "shipped" => "🚚 Your order #{$order_id} has been SHIPPED! Track your delivery for updates.",
+        "delivered" => "📦 Your order #{$order_id} has been DELIVERED. Thank you for shopping on Kasi2Kasi!",
+        "cancelled" => "❌ Your order #{$order_id} has been CANCELLED. Contact the seller for more information."
+    ];
+    
+    if (isset($status_messages[$new_status])) {
+        $notif_stmt = $conn->prepare("
+            INSERT INTO notification (user_id, type, title, message, is_read)
+            VALUES (?, 'order_update', 'Order Status Updated', ?, 0)
+        ");
+        $notif_stmt->bind_param("is", $buyer_id, $status_messages[$new_status]);
+        $notif_stmt->execute();
+    }
+    
+    // CREATE SELLER NOTIFICATION (confirmation of action)
+    $seller_messages = [
+        "paid" => "✅ You marked Order #{$order_id} as PAID. Stock has been deducted.",
+        "shipped" => "🚚 You marked Order #{$order_id} as SHIPPED. Buyer has been notified.",
+        "delivered" => "📦 You marked Order #{$order_id} as DELIVERED. Review requested from buyer.",
+        "cancelled" => "❌ You cancelled Order #{$order_id}. Buyer has been notified."
+    ];
+    
+    if (isset($seller_messages[$new_status])) {
+        $seller_notif = $conn->prepare("
+            INSERT INTO notification (user_id, type, title, message, is_read)
+            VALUES (?, 'order_update', 'Order Update Confirmed', ?, 0)
+        ");
+        $seller_notif->bind_param("is", $user_id, $seller_messages[$new_status]);
+        $seller_notif->execute();
+    }
+    
+    // IF DELIVERED, REQUEST REVIEW
+    if ($new_status === 'delivered') {
+        $review_notif = $conn->prepare("
+            INSERT INTO notification (user_id, type, title, message, is_read)
+            VALUES (?, 'review_request', 'Rate Your Purchase', 
+                'Please leave a review for your recent order #{$order_id}. Your feedback helps the community.', 0)
+        ");
+        $review_notif->bind_param("i", $buyer_id);
+        $review_notif->execute();
+    }
+    
+    $_SESSION['success'] = "Order #{$order_id} updated to '" . ucfirst($new_status) . "' successfully.";
+    header("Location: seller_orders.php?updated=1");
+    exit;
+}
+
+// ============================================================
+// HANDLE BULK STATUS UPDATE
+// ============================================================
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["bulk_update"])) {
+    $bulk_status = $_POST["bulk_status"];
+    $selected_orders = $_POST["selected_orders"] ?? [];
+    
+    // Validate bulk status
+    $valid_statuses = ['pending', 'paid', 'shipped', 'delivered', 'cancelled'];
+    if (!in_array($bulk_status, $valid_statuses)) {
+        $_SESSION['error'] = "Invalid status for bulk update.";
+        header("Location: seller_orders.php");
+        exit;
+    }
+    
+    $updated_count = 0;
+    if (!empty($selected_orders)) {
+        foreach ($selected_orders as $order_id) {
+            $order_id = intval($order_id);
+            
+            // Check permission and current status
+            $check_stmt = $conn->prepare("
+                SELECT orders.status AS current_status, orders.buyer_id
+                FROM orders
+                JOIN order_item ON orders.order_id = order_item.order_id
+                JOIN product ON order_item.product_id = product.product_id
+                WHERE orders.order_id = ? AND product.seller_id = ?
+                LIMIT 1
+            ");
+            $check_stmt->bind_param("ii", $order_id, $user_id);
+            $check_stmt->execute();
+            $check_result = $check_stmt->get_result()->fetch_assoc();
+            
+            if ($check_result) {
+                $current_status = $check_result['current_status'];
+                $allowed_transitions = [
+                    'pending' => ['paid', 'cancelled'],
+                    'paid' => ['shipped', 'cancelled'],
+                    'shipped' => ['delivered', 'cancelled'],
+                    'delivered' => [],
+                    'cancelled' => []
+                ];
+                
+                if (in_array($bulk_status, $allowed_transitions[$current_status])) {
+                    $update_stmt = $conn->prepare("UPDATE orders SET status = ? WHERE order_id = ?");
+                    $update_stmt->bind_param("si", $bulk_status, $order_id);
+                    $update_stmt->execute();
+                    $updated_count++;
+                }
+            }
+        }
+        
+        $_SESSION['success'] = "Bulk update completed: {$updated_count} order(s) updated to '" . ucfirst($bulk_status) . "'.";
+        header("Location: seller_orders.php?bulk_updated=1");
+        exit;
+    }
+}
+
+// ============================================================
+// GET ALL ORDERS FOR THIS SELLER
 // ============================================================
 $orders_stmt = $conn->prepare("
     SELECT DISTINCT
@@ -92,96 +300,6 @@ $orders_stmt = $conn->prepare("
 $orders_stmt->bind_param("i", $user_id);
 $orders_stmt->execute();
 $orders = $orders_stmt->get_result();
-
-// ============================================================
-// HANDLE ORDER STATUS UPDATE
-// ============================================================
-if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["update_status"])) {
-    $order_id = intval($_POST["order_id"]);
-    $new_status = $_POST["new_status"];
-    
-    // Verify this seller has permission to update this order
-    $check_stmt = $conn->prepare("
-        SELECT COUNT(*) as count
-        FROM orders
-        JOIN order_item ON orders.order_id = order_item.order_id
-        JOIN product ON order_item.product_id = product.product_id
-        WHERE orders.order_id = ? AND product.seller_id = ?
-    ");
-    $check_stmt->bind_param("ii", $order_id, $user_id);
-    $check_stmt->execute();
-    $check_result = $check_stmt->get_result()->fetch_assoc();
-    
-    if ($check_result["count"] > 0) {
-        $update_stmt = $conn->prepare("UPDATE orders SET status = ? WHERE order_id = ?");
-        $update_stmt->bind_param("si", $new_status, $order_id);
-        $update_stmt->execute();
-        
-        // Create notification for buyer about order update
-        $buyer_info = $conn->prepare("SELECT buyer_id FROM orders WHERE order_id = ?");
-        $buyer_info->bind_param("i", $order_id);
-        $buyer_info->execute();
-        $buyer_id = $buyer_info->get_result()->fetch_assoc()["buyer_id"];
-        
-        $status_messages = [
-            "paid" => "✅ Your order #{$order_id} has been marked as PAID. The seller will prepare your items soon.",
-            "shipped" => "🚚 Your order #{$order_id} has been SHIPPED! Track your delivery for updates.",
-            "delivered" => "📦 Your order #{$order_id} has been DELIVERED. Thank you for shopping on Kasi2Kasi!"
-        ];
-        
-        if (isset($status_messages[$new_status])) {
-            $notif_stmt = $conn->prepare("
-                INSERT INTO notification (user_id, type, title, message, is_read)
-                VALUES (?, 'order_update', 'Order Status Updated', ?, 0)
-            ");
-            $notif_stmt->bind_param("is", $buyer_id, $status_messages[$new_status]);
-            $notif_stmt->execute();
-        }
-        
-        // If order is delivered, also mark payment as completed
-        if ($new_status === "delivered") {
-            $update_payment = $conn->prepare("UPDATE payment SET status = 'completed', paid_at = NOW() WHERE order_id = ?");
-            $update_payment->bind_param("i", $order_id);
-            $update_payment->execute();
-        }
-        
-        header("Location: seller_orders.php?updated=1");
-        exit;
-    }
-}
-
-// ============================================================
-// HANDLE BULK STATUS UPDATE
-// ============================================================
-if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["bulk_update"])) {
-    $bulk_status = $_POST["bulk_status"];
-    $selected_orders = $_POST["selected_orders"] ?? [];
-    
-    if (!empty($selected_orders)) {
-        foreach ($selected_orders as $order_id) {
-            $order_id = intval($order_id);
-            
-            $check_stmt = $conn->prepare("
-                SELECT COUNT(*) as count
-                FROM orders
-                JOIN order_item ON orders.order_id = order_item.order_id
-                JOIN product ON order_item.product_id = product.product_id
-                WHERE orders.order_id = ? AND product.seller_id = ?
-            ");
-            $check_stmt->bind_param("ii", $order_id, $user_id);
-            $check_stmt->execute();
-            $check_result = $check_stmt->get_result()->fetch_assoc();
-            
-            if ($check_result["count"] > 0) {
-                $update_stmt = $conn->prepare("UPDATE orders SET status = ? WHERE order_id = ?");
-                $update_stmt->bind_param("si", $bulk_status, $order_id);
-                $update_stmt->execute();
-            }
-        }
-        header("Location: seller_orders.php?bulk_updated=1");
-        exit;
-    }
-}
 
 // ============================================================
 // GET STATISTICS
@@ -238,6 +356,13 @@ $out_of_stock_count_stmt->execute();
 $out_of_stock_count = $out_of_stock_count_stmt->get_result()->fetch_assoc()["c"];
 
 $status_filter = $_GET["status"] ?? "";
+
+// ============================================================
+// DISPLAY SUCCESS/ERROR MESSAGES
+// ============================================================
+$success_msg = $_SESSION['success'] ?? '';
+$error_msg = $_SESSION['error'] ?? '';
+unset($_SESSION['success'], $_SESSION['error']);
 ?>
 
 <?php include "INCLUDES/header.php"; ?>
@@ -253,6 +378,18 @@ $status_filter = $_GET["status"] ?? "";
       </p>
     </div>
   </section>
+
+  <?php if ($success_msg): ?>
+    <div class="card auto-hide" style="padding:16px;background:rgba(22,163,74,.08);border-left:4px solid var(--ubuntu);margin-bottom:16px">
+      <?= htmlspecialchars($success_msg) ?>
+    </div>
+  <?php endif; ?>
+
+  <?php if ($error_msg): ?>
+    <div class="card auto-hide" style="padding:16px;background:#fee2e2;border-left:4px solid var(--danger);margin-bottom:16px">
+      <?= htmlspecialchars($error_msg) ?>
+    </div>
+  <?php endif; ?>
 
   <?php if (isset($_GET["updated"])): ?>
     <div class="card auto-hide" style="padding:16px;background:rgba(22,163,74,.08);border-left:4px solid var(--ubuntu);margin-bottom:16px">
@@ -477,7 +614,7 @@ $status_filter = $_GET["status"] ?? "";
             Order Total: R <?= number_format($order_total, 2) ?>
           </strong>
 
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
             <?php if ($order["status"] === "pending"): ?>
               <form method="POST" style="display:inline">
                 <input type="hidden" name="order_id" value="<?= $order["order_id"] ?>">
@@ -502,10 +639,44 @@ $status_filter = $_GET["status"] ?? "";
               </form>
             <?php endif; ?>
 
-            <?php if (in_array($order["status"], ["pending", "paid"])): ?>
+            <?php if (in_array($order["status"], ["pending", "paid", "shipped"])): ?>
+              <form method="POST" style="display:inline">
+                <input type="hidden" name="order_id" value="<?= $order["order_id"] ?>">
+                <input type="hidden" name="new_status" value="cancelled">
+                <button type="submit" name="update_status" class="btn btn-danger btn-sm" onclick="return confirm('Cancel this order? This cannot be undone.')">❌ Cancel Order</button>
+              </form>
+            <?php endif; ?>
+
+            <?php if (in_array($order["status"], ["pending", "paid", "shipped"])): ?>
               <a href="messages.php?user_id=<?= $order["buyer_id"] ?>" class="btn btn-outline btn-sm">💬 Message Buyer</a>
             <?php endif; ?>
           </div>
+        </div>
+
+        <!-- Status transition info -->
+        <div style="margin-top:12px;padding:10px;background:var(--cream);border-radius:12px;font-size:0.8rem;color:var(--muted)">
+          <strong>Status flow:</strong> 
+          <?php
+          $flow = [
+            'pending' => '⏳ Pending',
+            'paid' => '💳 Paid',
+            'shipped' => '🚚 Shipped',
+            'delivered' => '✅ Delivered'
+          ];
+          
+          $current = $order["status"];
+          $show_arrow = false;
+          foreach ($flow as $key => $label) {
+              if ($show_arrow) echo " → ";
+              if ($key === $current) {
+                  echo "<strong style='color:var(--primary)'>$label</strong>";
+              } else {
+                  echo "<span style='opacity:0.5'>$label</span>";
+              }
+              if ($key === 'delivered') break;
+              $show_arrow = true;
+          }
+          ?>
         </div>
       </div>
 
@@ -529,6 +700,21 @@ $status_filter = $_GET["status"] ?? "";
 document.getElementById('selectAll')?.addEventListener('change', function(e) {
     document.querySelectorAll('.order-checkbox').forEach(cb => {
         cb.checked = e.target.checked;
+    });
+});
+
+// Auto-hide alerts after 5 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    const alerts = document.querySelectorAll('.auto-hide');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            alert.style.transition = 'all 0.5s ease';
+            alert.style.opacity = '0';
+            alert.style.transform = 'translateY(-10px)';
+            setTimeout(() => {
+                if (alert.parentNode) alert.remove();
+            }, 500);
+        }, 5000);
     });
 });
 </script>

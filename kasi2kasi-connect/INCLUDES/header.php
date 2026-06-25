@@ -36,6 +36,8 @@ if (isLoggedIn() && !$isAdminPage) {
   <link rel="stylesheet" href="https://kasi2kasi-connect-production.up.railway.app/ASSETS/CSS/styles.css">
   <script src="https://kasi2kasi-connect-production.up.railway.app/ASSETS/JavaScript/app.js" defer></script>
   <script src="https://kasi2kasi-connect-production.up.railway.app/ASSETS/JavaScript/animations.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 </head>
 
 <body class="<?= $bodyClass ?>">

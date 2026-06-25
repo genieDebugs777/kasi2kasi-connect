@@ -115,17 +115,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 throw new Exception("Some items are no longer available: " . implode(", ", $insufficient_stock));
             }
             
-            // Create order
+            // ============================================================
+            // CREATE ORDER - FIXED BIND PARAMETERS
+            // ============================================================
+            // Determine initial order status based on payment method
+            $initial_status = ($payment_method === 'cash') ? 'paid' : 'pending';
+            
             $order_stmt = $conn->prepare("
                 INSERT INTO orders
                 (buyer_id, total_amount, status, delivery_address, delivery_phone)
                 VALUES (?, ?, ?, ?, ?)
             ");
-
-            // Set initial order status based on payment method
-            $initial_status = ($payment_method === 'cash') ? 'paid' : 'pending';
             
-            $order_stmt->bind_param("idss", $user_id, $total, $initial_status, $delivery_address, $delivery_phone);
+            // FIXED: Added 5th 's' for delivery_phone
+            // idsss = i (integer) + d (decimal) + sss (3 strings)
+            $order_stmt->bind_param("idsss", $user_id, $total, $initial_status, $delivery_address, $delivery_phone);
             $order_stmt->execute();
             $order_id = $order_stmt->insert_id;
 
@@ -141,40 +145,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $order_item_stmt->execute();
             }
 
-            // Create payment record - FIXED: Auto-complete for cash
+            // Create payment record
             $reference = "K2K-" . time() . "-" . $order_id;
             
-            // Determine payment status
-            $payment_status = ($payment_method === 'cash') ? 'completed' : 'pending';
-            $paid_at = ($payment_method === 'cash') ? 'NOW()' : 'NULL';
-            
-            $payment_stmt = $conn->prepare("
-                INSERT INTO payment
-                (order_id, method, status, amount, reference, paid_at)
-                VALUES (?, ?, ?, ?, ?, " . ($payment_method === 'cash' ? "NOW()" : "NULL") . ")
-            ");
-            
-            // For cash payments, also update the paid_at timestamp
             if ($payment_method === 'cash') {
+                // Cash payment - auto-complete
                 $payment_stmt = $conn->prepare("
                     INSERT INTO payment
                     (order_id, method, status, amount, reference, paid_at)
                     VALUES (?, ?, 'completed', ?, ?, NOW())
                 ");
+                $payment_stmt->bind_param("isds", $order_id, $payment_method, $total, $reference);
             } else {
+                // EFT/Card/Mobile - pending
                 $payment_stmt = $conn->prepare("
                     INSERT INTO payment
                     (order_id, method, status, amount, reference)
                     VALUES (?, ?, 'pending', ?, ?)
                 ");
+                $payment_stmt->bind_param("isds", $order_id, $payment_method, $total, $reference);
             }
-            
-            $payment_stmt->bind_param("isds", $order_id, $payment_method, $total, $reference);
             $payment_stmt->execute();
 
             // IF CASH PAYMENT - Reduce stock immediately
             if ($payment_method === 'cash') {
-                // Reduce stock for all items
                 $update_stock_stmt = $conn->prepare("
                     UPDATE product 
                     SET quantity = quantity - ? 
@@ -211,7 +205,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $conn->commit();
 
             // Create notification for seller(s)
-            // Get all sellers involved in this order
             $seller_stmt = $conn->prepare("
                 SELECT DISTINCT product.seller_id
                 FROM order_item
@@ -263,7 +256,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <section class="hero" style="padding:40px 30px;margin-bottom:24px;">
         <div class="hero-content">
             <div class="kicker">💳 Secure Checkout</div>
-            <h1 style="font-size:clamp(2rem,4vw,3.5rem)">Complete your local trade.</h1>
+            <h1 style="font-size:clamp(2rem,4vw,3.5rem);">Complete your local trade.</h1>
             <p>Review your items, choose delivery preferences, and securely place your order.</p>
         </div>
     </section>
@@ -351,7 +344,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         <span>💵</span>
                         <h4>Cash On Delivery</h4>
                         <p>Pay when receiving goods</p>
-                        <small style="color:var(--ubuntu);font-weight:bold">✓ Auto-confirmed on order</small>
+                        <small style="color:var(--ubuntu);font-weight:bold;">✓ Auto-confirmed on order</small>
                     </div>
                 </label>
             </div>
@@ -370,15 +363,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 <p class="text-sm text-muted" style="margin-top:8px;line-height:1.6;">
                     ✅ Verified sellers<br>
                     ✅ Secure transaction records<br>
-                    ✅ Community marketplace trust<br>
-                    <?php if (isset($payment_method) && $payment_method === 'cash'): ?>
-                    ✅ <strong style="color:var(--ubuntu)">Cash orders auto-confirmed for faster processing</strong>
-                    <?php endif; ?>
+                    ✅ Community marketplace trust
                 </p>
             </div>
 
             <button class="btn btn-primary btn-block mt-3" type="submit">
-                <?= (isset($_POST['payment_method']) && $_POST['payment_method'] === 'cash') ? '✓ Confirm Order' : 'Place Order' ?>
+                <?= (isset($_POST['payment_method']) && $_POST['payment_method'] === 'cash') ? '✓ Confirm Cash Order' : 'Place Order' ?>
             </button>
         </form>
 
@@ -450,7 +440,6 @@ function updateTotal() {
     let deliveryFee = (selectedDelivery === 'pickup') ? 0 : 50;
     let total = subtotal + deliveryFee;
     
-    // Update delivery fee display
     if (deliveryFee === 0) {
         deliveryFeeAmount.innerHTML = 'R 0.00';
         deliveryAddressField.style.display = 'none';

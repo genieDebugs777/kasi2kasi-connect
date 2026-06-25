@@ -47,6 +47,7 @@ $recent_users = $conn->query("
 
     <nav class="admin-side-nav">
       <a class="active" href="index.php">📊 Dashboard</a>
+      <a href="dashboard_analytics.php">📈 Analytics</a>
 
       <?php if (currentUserRole() === "Super Admin"): ?>
         <a href="users.php">👥 Users</a>
